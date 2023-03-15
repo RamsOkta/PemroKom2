@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -16,23 +17,35 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.DefaultListModel;
+import javax.swing.SwingWorker;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 
 /**
  *
  * @author rams
  */
 public class ExchangeRate extends javax.swing.JFrame {
-      String API_PROVDIER ="https://api.apilayer.com/exchangerates_data";
-        String[] code = {"MXN","AUD","HKD","RON","HRK","CHF","IDR","CAD","USD","JPY","BRL","PHP","CZK","NOK","INR","PLN","ISK","MYR","ZAR","ILS","GBP","SGD","HUF","EUR","CNY","TRY","SEK","RUB","NZD","KRW","THB","BGN","DKK"};
+   
+    
+    
+    
+    
+ String API_PROVDIER =
+"https://api.apilayer.com/exchangerates_data";
+String[] code = {"MXN","AUD","HKD","RON","HRK","CHF","IDR",
+ "CAD","USD","JPY","BRL","PHP","CZK","NOK","INR","PLN","ISK",
+ "MYR","ZAR","ILS","GBP","SGD","HUF","EUR","CNY","TRY","SEK","RUB","NZD","KRW","THB","BGN","DKK" };
 DefaultListModel<String> model = new DefaultListModel<>();
 List<String> rates = new ArrayList<>();
 
     private void initBase(){
         listRates.setModel(model);
         cmbBase.removeAllItems();
-        cmbBase.additem("--Select Base--");
+        cmbBase.addItem("--Select Base--");
         for  (String str : code){
-        cmbBase.addItem(str);
+            cmbBase.addItem(str);
         }
     }
     
@@ -53,9 +66,11 @@ List<String> rates = new ArrayList<>();
     private void loading(boolean b){
         loading.setVisible(b);
     }
-    private void addResponseTolist(String base){
+    private void addResponseToList(String base){
         CurrencyConversionResponse response =
-            getResponse(API_PROVDIER+""+"/latest?"+"access_key=YOUR_API_KEY"//+"&base=" +base+ "");
+          getResponse(API_PROVDIER + ""
+          + "/latest?"
+          + "access_key=YOUR_API_KEY"+"&base=" + base + "");
         if(response != null){
             rates.clear();
             for(String str : code){
@@ -65,35 +80,68 @@ List<String> rates = new ArrayList<>();
             }
            }
     }
-    private static CurrencyConversionResponse getResponse(String strUrl) throws IOException{
-        CurrencyConversionResponse response = null;
-        Gson gson = new Gson();
-        StringBuilder sb = new StringBuilder();
-        if(strUrl == null || strUrl.isEmpty()){
-            System.out.println("Application Error");
-            return null;
-        }
-        
-        URL url;
-        try{
-            url = new URL(strUrl);
-            HttpURLConnection connection =
-                    (HttpURLConnection) url.openConnection();
-            
-            try (InputStream stream = Connection.getInputStream()){
-                int data = stream.read();
-                while (data != -1){
-                    sb.append((char) data);
-                }
-                
+    private static CurrencyConversionResponse
+            getResponse(String strUrl){
+            CurrencyConversionResponse response = null;
+            Gson gson = new Gson();
+            StringBuilder sb = new StringBuilder();
+            if(strUrl == null || strUrl.isEmpty()){
+                System.out.println("Application Error");
+                return null;
             }
+            URL url;
+            try{
+                url = new URL(strUrl);
+                HttpURLConnection connection =
+                        (HttpURLConnection) url.openConnection();
+                try (InputStream stream =
+                        connection.getInputStream()){
+                        int data = stream.read();
+                        while (data != -1){
+                            sb.append((char)data);
+                            data = stream.read();
+                        }
+                }
+                response = gson.fromJson(sb.toString(),CurrencyConversionResponse.class);
+                
+            }catch (MalformedURLException e){
+                System.out.println(e.getMessage());
+            }catch (IOException e){
+                System.out.println(e.getMessage());
+            }
+            return response;
+            }
+            class Exchange extends SwingWorker<Object, Object>{
+                public Exchange(String name){
+                    setName(name);
+                    System.out.println(name+" => Dijalanjkan");
+                }
+
+        @Override
+        protected Object doInBackground() throws Exception {
+            String base=
+                    cmbBase.getSelectedItem().toString();
+                    addResponseToList(base);
+                            return 0;
         }
-    }
+        protected void done(){
+            model.clear();
+            rates.forEach((rate) -> {
+                model.addElement(rate);
+            });
+            loading(false);
+            System.out.println(getName()+" => Diberhentikan!");
+        }
+            }
     /**
      * Creates new form ExchangeRate
      */
     public ExchangeRate() {
         initComponents();
+        
+        initBase();
+        startClock();
+        loading(false);
     }
 
     /**
@@ -105,15 +153,22 @@ List<String> rates = new ArrayList<>();
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        listRates = new javax.swing.JScrollPane();
+        jList = new javax.swing.JList<>();
         lblClock = new javax.swing.JLabel();
         pembatas = new javax.swing.JSeparator();
         cmbBase = new javax.swing.JComboBox<>();
-        jLabel1 = new javax.swing.JLabel();
-        listRates = new javax.swing.JScrollPane();
-        jList1 = new javax.swing.JList<>();
+        jLabel = new javax.swing.JLabel();
         loading = new javax.swing.JProgressBar();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+
+        jList.setModel(new javax.swing.AbstractListModel<String>() {
+            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
+            public int getSize() { return strings.length; }
+            public String getElementAt(int i) { return strings[i]; }
+        });
+        listRates.setViewportView(jList);
 
         lblClock.setText("Clock");
 
@@ -124,14 +179,7 @@ List<String> rates = new ArrayList<>();
             }
         });
 
-        jLabel1.setText("BASE :");
-
-        jList1.setModel(new javax.swing.AbstractListModel<String>() {
-            String[] strings = { "Item 1", "Item 2", "Item 3", "Item 4", "Item 5" };
-            public int getSize() { return strings.length; }
-            public String getElementAt(int i) { return strings[i]; }
-        });
-        listRates.setViewportView(jList1);
+        jLabel.setText("BASE :");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -149,7 +197,7 @@ List<String> rates = new ArrayList<>();
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(listRates, javax.swing.GroupLayout.PREFERRED_SIZE, 271, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel1)
+                        .addComponent(jLabel)
                         .addGap(18, 18, 18)
                         .addComponent(cmbBase, javax.swing.GroupLayout.PREFERRED_SIZE, 194, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(26, Short.MAX_VALUE))
@@ -168,9 +216,9 @@ List<String> rates = new ArrayList<>();
                 .addGap(28, 28, 28)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(cmbBase, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel1))
-                .addGap(18, 18, 18)
-                .addComponent(listRates, javax.swing.GroupLayout.PREFERRED_SIZE, 197, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(listRates, javax.swing.GroupLayout.PREFERRED_SIZE, 209, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(loading, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
@@ -180,7 +228,13 @@ List<String> rates = new ArrayList<>();
     }// </editor-fold>//GEN-END:initComponents
 
     private void cmbBaseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbBaseActionPerformed
-        // TODO add your handling code here:
+        int index = cmbBase.getSelectedIndex();
+        if(index > 0){
+            loading(true);
+            new Exchange("Thread-Exchange").execute();
+        }else{
+            model.clear();
+        }
     }//GEN-LAST:event_cmbBaseActionPerformed
 
     /**
@@ -220,8 +274,8 @@ List<String> rates = new ArrayList<>();
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JComboBox<String> cmbBase;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JList<String> jList1;
+    private javax.swing.JLabel jLabel;
+    private javax.swing.JList<String> jList;
     private javax.swing.JLabel lblClock;
     private javax.swing.JScrollPane listRates;
     private javax.swing.JProgressBar loading;
